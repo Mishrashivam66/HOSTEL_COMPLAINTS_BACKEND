@@ -1,69 +1,58 @@
 const mongoose =
-  require("mongoose");
-
-// =====================================
-// NOTIFICATION SCHEMA
-// =====================================
+require("mongoose");
 
 const notificationSchema =
-  new mongoose.Schema(
+new mongoose.Schema(
 
-    {
+  {
 
-      userId: {
+    title: {
 
-        type:
-          mongoose.Schema.Types.ObjectId,
+      type: String,
 
-        ref: "User",
-
-        required: true,
-
-      },
-
-      title: {
-
-        type: String,
-
-        required: true,
-
-      },
-
-      message: {
-
-        type: String,
-
-        required: true,
-
-      },
-
-      isRead: {
-
-        type: Boolean,
-
-        default: false,
-
-      },
+      required: true,
 
     },
 
-    {
+    message: {
 
-      timestamps: true,
+      type: String,
 
-    }
+      required: true,
 
-  );
+    },
 
-// =====================================
-// EXPORT
-// =====================================
+    complaintId: {
+
+      type: String,
+
+      default: "",
+
+    },
+
+    isRead: {
+
+      type: Boolean,
+
+      default: false,
+
+    },
+
+  },
+
+  {
+
+    timestamps: true,
+
+  }
+
+);
 
 module.exports =
-  mongoose.model(
+mongoose.model(
 
-    "Notification",
+  "Notification",
 
-    notificationSchema
+  notificationSchema
 
-  );
+);

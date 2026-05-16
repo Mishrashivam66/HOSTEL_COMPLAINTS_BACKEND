@@ -6,23 +6,24 @@ const dotenv = require("dotenv");
 
 // DATABASE
 
-const connectDB =
-  require("./config/db");
+const connectDB = require("./config/db");
 
 // ROUTES
 
-const authRoutes =
-  require("./routes/authRoutes");
+const authRoutes = require("./routes/authRoutes");
 
-  const notificationRoutes =
-  require(
+const notificationRoutes = require("./routes/notificationRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
-    "./routes/notificationRoutes"
+const complaintRoutes = require("./routes/complaintRoutes");
+const adminController =
+require(
 
-  );
+  "./controllers/admin/adminController"
 
-const complaintRoutes =
-  require("./routes/complaintRoutes");
+);
+
+const workerRoutes = require("./routes/workerRoutes");
 
 // =====================================
 // CONFIG
@@ -43,29 +44,13 @@ connectDB();
 // =====================================
 
 app.use(
-
   cors({
-
     origin: "*",
 
-    methods: [
-
-      "GET",
-
-      "POST",
-
-      "PUT",
-
-      "DELETE",
-
-      "PATCH",
-
-    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
 
     credentials: true,
-
-  })
-
+  }),
 );
 
 // =====================================
@@ -75,32 +60,24 @@ app.use(
 app.use(express.json());
 
 app.use(
-
   express.urlencoded({
-
     extended: true,
-
-  })
-
+  }),
 );
 // =====================================
 // ROUTES
 // =====================================
 
 app.use(
-
   "/api/auth",
 
-  authRoutes
-
+  authRoutes,
 );
 
 app.use(
-
   "/api/complaints",
 
-  complaintRoutes
-
+  complaintRoutes,
 );
 
 // =====================================
@@ -108,16 +85,44 @@ app.use(
 // =====================================
 
 app.get("/", (req, res) => {
-
   res.send("API Running");
-
 });
 
 app.use(
-
   "/api/notifications",
 
-  notificationRoutes
+  notificationRoutes,
+);
+
+app.use(
+  "/api/admin",
+
+  adminRoutes,
+);
+// worker 
+
+app.use(
+
+  "/api/worker",
+
+  workerRoutes
+
+);
+
+// ======================
+// AUTO OVERDUE CHECK
+// ======================
+
+setInterval(
+
+  async () => {
+
+    await adminController
+      .checkOverdueComplaints();
+
+  },
+
+  60 * 1000
 
 );
 
@@ -125,15 +130,8 @@ app.use(
 // SERVER
 // =====================================
 
-const PORT =
-  process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-
-  console.log(
-
-    `Server running on port ${PORT}`
-
-  );
-
+  console.log(`Server running on port ${PORT}`);
 });

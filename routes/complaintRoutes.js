@@ -172,6 +172,17 @@ router.put(
   updateComplaintStatus
 
 );
+router.get(
+
+  "/:id",
+
+  authMiddleware,
+
+  authorizeRole("student"),
+
+  getSingleComplaint
+
+);
 
 // =====================================
 // ADMIN

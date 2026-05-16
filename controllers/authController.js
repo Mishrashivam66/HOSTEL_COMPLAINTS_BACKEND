@@ -196,7 +196,27 @@ export const loginUser = async (
     // JWT TOKEN
     // ======================
 
+  if (
+
+  user.role !== "admin"
+
+  &&
+
+  !user.isApproved
+
+) {
+
+  return res.status(403).json({
+
+    message:
+      "Admin approval pending",
+
+  });
+
+}
+
     const token = jwt.sign(
+      
 
   {
 

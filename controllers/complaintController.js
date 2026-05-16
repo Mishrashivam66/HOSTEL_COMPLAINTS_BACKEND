@@ -3,51 +3,30 @@ const Complaint = require("../models/Complaint");
 const {
   sendStudentNotification,
   sendWorkerNotification,
-  sendAdminNotification
+  sendAdminNotification,
 } = require("../services/telegramService");
-
 
 // =====================================
 // CREATE COMPLAINT
 // =====================================
 
 exports.createComplaint = async (req, res) => {
-
   try {
+    const { hostel, floor, room, phoneNumber, category, description } =
+      req.body;
 
-    const {
-      hostel,
-      floor,
-      room,
-      phoneNumber,
-      category,
-      description
-    } = req.body;
-
-
-    if (
-      !hostel ||
-      !floor ||
-      !room ||
-      !phoneNumber ||
-      !category
-    ) {
-
+    if (!hostel || !floor || !room || !phoneNumber || !category) {
       return res.status(400).json({
-        message: "All required fields must be filled"
+        message: "All required fields must be filled",
       });
-
     }
-
 
     // Auto 24h deadline
     const deadline = new Date();
 
     deadline.setHours(deadline.getHours() + 24);
 
-
     const complaint = await Complaint.create({
-
       studentId: req.user.id,
 
       hostel,
@@ -58,19 +37,23 @@ exports.createComplaint = async (req, res) => {
       description,
 
       status: "Pending",
+      priority: "Medium",
 
-      completionDeadline: deadline
+      assignedWorker: "",
 
+      workerPhone: "",
+
+      isEscalated: false,
+
+      completionDeadline: deadline,
     });
-
 
     // ============================
     // STUDENT NOTIFICATION
     // ============================
 
     await sendStudentNotification(
-
-`✅ Complaint Registered
+      `✅ Complaint Registered
 
 Hostel: ${hostel}
 Room: ${room}
@@ -79,18 +62,15 @@ Category:
 ${category}
 
 Status:
-Pending`
-
+Pending`,
     );
-
 
     // ============================
     // WORKER NOTIFICATION
     // ============================
 
     await sendWorkerNotification(
-
-`🚨 NEW COMPLAINT
+      `🚨 NEW COMPLAINT
 
 Hostel: ${hostel}
 Room: ${room}
@@ -99,98 +79,67 @@ Category:
 ${category}
 
 Description:
-${description}`
-
+${description}`,
     );
 
-
     res.status(201).json({
-
       message: "Complaint submitted successfully",
 
-      complaint
-
+      complaint,
     });
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // STUDENT → MY COMPLAINTS
 // =====================================
 
 exports.getMyComplaints = async (req, res) => {
-
   try {
-
     const complaints = await Complaint.find({
-
-      studentId: req.user.id
-
+      studentId: req.user.id,
     }).sort({ createdAt: -1 });
 
-
     res.status(200).json(complaints);
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // WORKER → ACTIVE COMPLAINTS
 // =====================================
 
 exports.getWorkerComplaints = async (req, res) => {
-
   try {
-
     const complaints = await Complaint.find({
-
-      status: { $ne: "Completed" }
-
+      status: { $ne: "Completed" },
     })
 
-    .populate("studentId", "name email")
+      .populate("studentId", "name email")
 
-    .sort({ createdAt: -1 });
-
+      .sort({ createdAt: -1 });
 
     res.status(200).json(complaints);
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // WORKER → ACCEPT COMPLAINT
 // =====================================
 
 exports.acceptComplaint = async (req, res) => {
-
   try {
-
     // const currentHour = new Date().getHours();
 
     // if (currentHour < 9 || currentHour >= 17) {
@@ -204,41 +153,37 @@ exports.acceptComplaint = async (req, res) => {
     const { visitTime } = req.body;
 
     if (!visitTime) {
-
       return res.status(400).json({
-        message: "Visit time is required"
+        message: "Visit time is required",
       });
-
     }
 
     const complaint = await Complaint.findById(req.params.id);
 
     if (!complaint) {
-
       return res.status(404).json({
-        message: "Complaint not found"
+        message: "Complaint not found",
       });
-
     }
 
     complaint.workerAccepted = true;
+    complaint.assignedWorker = req.user.name || req.user.firstName;
+
+    complaint.workerPhone = req.user.phoneNumber || "";
 
     complaint.visitTime = visitTime;
 
     complaint.acceptedAt = new Date();
 
-    complaint.status = "In Progress";
-
+    complaint.status = "Assigned";
     await complaint.save();
-
 
     // ============================
     // STUDENT NOTIFICATION
     // ============================
 
     await sendStudentNotification(
-
-`👨‍🔧 Worker Assigned
+      `👨‍🔧 Worker Assigned
 
 Visit Time:
 ${visitTime}
@@ -246,314 +191,214 @@ ${visitTime}
 Status:
 In Progress
 
-Please remain available in your room.`
-
+Please remain available in your room.`,
     );
 
-
     res.status(200).json({
-
       message: "Complaint accepted successfully",
 
-      complaint
-
+      complaint,
     });
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // WORKER → UPDATE STATUS
 // =====================================
 
 exports.updateComplaintStatus = async (req, res) => {
-
   try {
-
     const complaint = await Complaint.findById(req.params.id);
 
     if (!complaint) {
-
       return res.status(404).json({
-        message: "Complaint not found"
+        message: "Complaint not found",
       });
-
     }
 
-
-    const allowedStatus = [
-
-      "Pending",
-      "In Progress",
-      "Completed"
-
-    ];
-
-
+    const allowedStatus = ["Pending", "Assigned", "In Progress", "Completed"];
     if (!allowedStatus.includes(req.body.status)) {
-
       return res.status(400).json({
-        message: "Invalid status value"
+        message: "Invalid status value",
       });
-
     }
-
 
     complaint.status = req.body.status;
 
-
     if (req.body.status === "Completed") {
-
       complaint.completedAt = new Date();
 
-
       await sendStudentNotification(
-
-`✅ Complaint Resolved
+        `✅ Complaint Resolved
 
 Your complaint has been marked completed.
 
-Thank you for using Hostel Complaint System.`
-
+Thank you for using Hostel Complaint System.`,
       );
-
     }
-
 
     await complaint.save();
 
-
     res.status(200).json({
-
       message: "Complaint status updated successfully",
 
-      complaint
-
+      complaint,
     });
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // ADMIN → ALL COMPLAINTS
 // =====================================
 
 exports.getAllComplaints = async (req, res) => {
-
   try {
-
     const complaints = await Complaint.find()
 
-    .populate("studentId", "name email")
+      .populate("studentId", "name email")
 
-    .sort({ createdAt: -1 });
-
+      .sort({ createdAt: -1 });
 
     res.status(200).json(complaints);
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // ADMIN → ESCALATED COMPLAINTS
 // =====================================
 
 exports.getEscalatedComplaints = async (req, res) => {
-
   try {
-
     const complaints = await Complaint.find({
-
-      isEscalated: true
-
+      isEscalated: true,
     })
 
-    .populate("studentId", "name email")
+      .populate("studentId", "name email")
 
-    .sort({ createdAt: -1 });
-
+      .sort({ createdAt: -1 });
 
     res.status(200).json(complaints);
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // ADMIN → STATS
 // =====================================
 
 exports.getAdminStats = async (req, res) => {
-
   try {
+    const totalComplaints = await Complaint.countDocuments();
 
-    const totalComplaints =
-      await Complaint.countDocuments();
+    const pending = await Complaint.countDocuments({
+      status: "Pending",
+    });
 
-    const pending =
-      await Complaint.countDocuments({
-        status: "Pending"
-      });
+    const inProgress = await Complaint.countDocuments({
+      status: "In Progress",
+    });
 
-    const inProgress =
-      await Complaint.countDocuments({
-        status: "In Progress"
-      });
-
-    const completed =
-      await Complaint.countDocuments({
-        status: "Completed"
-      });
-
+    const completed = await Complaint.countDocuments({
+      status: "Completed",
+    });
 
     res.status(200).json({
-
       totalComplaints,
       pending,
       inProgress,
-      completed
-
+      completed,
     });
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // HOSTEL STATS
 // =====================================
 
 exports.getHostelStats = async (req, res) => {
-
   try {
-
     const stats = await Complaint.aggregate([
-
       {
         $group: {
           _id: "$hostel",
-          count: { $sum: 1 }
-        }
-      }
-
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
-
     res.status(200).json(stats);
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // CATEGORY STATS
 // =====================================
 
 exports.getCategoryStats = async (req, res) => {
-
   try {
-
     const stats = await Complaint.aggregate([
-
       {
         $group: {
           _id: "$category",
-          count: { $sum: 1 }
-        }
-      }
-
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
-
     res.status(200).json(stats);
-
   } catch (error) {
-
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
-
   }
-
 };
-
 
 // =====================================
 // ESCALATION CHECKER
 // =====================================
 
 exports.checkEscalatedComplaints = async () => {
-
   try {
-
     const overdueComplaints = await Complaint.find({
-
       status: { $ne: "Completed" },
 
       completionDeadline: {
-        $lt: new Date()
+        $lt: new Date(),
       },
 
-      isEscalated: false
-
+      isEscalated: false,
     });
 
-
     for (const complaint of overdueComplaints) {
-
       complaint.isEscalated = true;
 
       await complaint.save();
 
-
       await sendAdminNotification(
-
-`⚠️ Complaint Escalated
+        `⚠️ Complaint Escalated
 
 Hostel:
 ${complaint.hostel}
@@ -564,21 +409,12 @@ ${complaint.room}
 Category:
 ${complaint.category}
 
-Complaint pending more than 24 hours.`
-
+Complaint pending more than 24 hours.`,
       );
 
-
-      console.log(
-        `Complaint Escalated: ${complaint._id}`
-      );
-
+      console.log(`Complaint Escalated: ${complaint._id}`);
     }
-
   } catch (error) {
-
     console.log(error.message);
-
   }
-
 };
