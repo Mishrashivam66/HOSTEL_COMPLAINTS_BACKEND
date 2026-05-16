@@ -1,28 +1,46 @@
-import express from "express";
+const express = require("express");
 
-import cors from "cors";
+const cors = require("cors");
 
-import dotenv from "dotenv";
+const dotenv = require("dotenv");
 
-import connectDB from "./config/db.js";
+// DATABASE
 
-import authRoutes from "./routes/authRoutes.js";
+const connectDB =
+  require("./config/db");
+
+// ROUTES
+
+const authRoutes =
+  require("./routes/authRoutes");
+
+  const notificationRoutes =
+  require(
+
+    "./routes/notificationRoutes"
+
+  );
+
+const complaintRoutes =
+  require("./routes/complaintRoutes");
+
+// =====================================
+// CONFIG
+// =====================================
 
 dotenv.config();
 
 const app = express();
 
-
-// ======================
+// =====================================
 // DATABASE
-// ======================
+// =====================================
 
 connectDB();
 
-
-// ======================
-// CORS CONFIG
-// ======================
+// =====================================
+// CORS
+// =====================================
 
 app.use(
 
@@ -50,30 +68,44 @@ app.use(
 
 );
 
-
-// ======================
+// =====================================
 // MIDDLEWARE
-// ======================
+// =====================================
 
 app.use(express.json());
 
-app.use(express.urlencoded({
+app.use(
 
-  extended: true,
+  express.urlencoded({
 
-}));
+    extended: true,
 
+  })
 
-// ======================
+);
+// =====================================
 // ROUTES
-// ======================
+// =====================================
 
-app.use("/api/auth", authRoutes);
+app.use(
 
+  "/api/auth",
 
-// ======================
-// TEST ROUTE
-// ======================
+  authRoutes
+
+);
+
+app.use(
+
+  "/api/complaints",
+
+  complaintRoutes
+
+);
+
+// =====================================
+// TEST
+// =====================================
 
 app.get("/", (req, res) => {
 
@@ -81,12 +113,20 @@ app.get("/", (req, res) => {
 
 });
 
+app.use(
 
-// ======================
+  "/api/notifications",
+
+  notificationRoutes
+
+);
+
+// =====================================
 // SERVER
-// ======================
+// =====================================
 
-const PORT = process.env.PORT || 5000;
+const PORT =
+  process.env.PORT || 5000;
 
 app.listen(PORT, () => {
 

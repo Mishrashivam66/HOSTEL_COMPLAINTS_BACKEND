@@ -1,118 +1,244 @@
-const express = require("express");
-
-const router = express.Router();
-
-const authMiddleware = require("../middleware/authMiddleware");
-
-const authorizeRole = require("../middleware/roleMiddleware");
-
-const complaintController = require("../controllers/complaintController");
-
-
+const router =
+  require("express").Router();
 
 // =====================================
-// STUDENT ROUTES
+// IMPORTS
 // =====================================
 
-// Create Complaint
+// CREATE
+
+const createComplaintController =
+  require(
+    "../controllers/complaint/createComplaint"
+  );
+
+// STUDENT
+
+const {
+
+  getMyComplaints,
+
+  getSingleComplaint,
+
+} = require(
+
+  "../controllers/complaint/studentComplaintController"
+
+);
+
+// WORKER
+
+const {
+
+  getWorkerComplaints,
+
+  acceptComplaint,
+
+  updateComplaintStatus
+
+} = require(
+
+  "../controllers/complaint/workerComplaintController"
+
+);
+
+// ADMIN
+
+const {
+
+  getAllComplaints,
+
+  getEscalatedComplaints
+
+} = require(
+
+  "../controllers/complaint/adminComplaintController"
+
+);
+
+// STATS
+
+const {
+
+  getAdminStats,
+
+  getHostelStats,
+
+  getCategoryStats
+
+} = require(
+
+  "../controllers/complaint/statsController"
+
+);
+
+// =====================================
+// MIDDLEWARE
+// =====================================
+
+const authMiddleware =
+  require(
+    "../middleware/authMiddleware"
+  );
+
+const authorizeRole =
+  require(
+    "../middleware/roleMiddleware"
+  );
+
+// =====================================
+// ROUTES
+// =====================================
+
+// =====================================
+// CREATE COMPLAINT
+// =====================================
 router.post(
-  "/create",
+
+  "/",
+
   authMiddleware,
+
   authorizeRole("student"),
-  complaintController.createComplaint
+
+  createComplaintController.createComplaint
+
 );
 
+// =====================================
+// STUDENT
+// =====================================
 
-// My Complaints
 router.get(
-  "/my-complaints",
+
+  "/my",
+
   authMiddleware,
+
   authorizeRole("student"),
-  complaintController.getMyComplaints
+
+  getMyComplaints
+
 );
 
+router.get(
 
+  "/:id",
+
+  authMiddleware,
+
+  authorizeRole("student"),
+
+  getSingleComplaint
+
+);
 
 // =====================================
-// ADMIN ROUTES
+// WORKER
 // =====================================
 
-// All Complaints
 router.get(
-  "/all",
-  authMiddleware,
-  authorizeRole("admin"),
-  complaintController.getAllComplaints
-);
 
-
-// Escalated Complaints
-router.get(
-  "/admin/escalated",
-  authMiddleware,
-  authorizeRole("admin"),
-  complaintController.getEscalatedComplaints
-);
-
-
-// Admin Stats
-router.get(
-  "/admin/stats",
-  authMiddleware,
-  authorizeRole("admin"),
-  complaintController.getAdminStats
-);
-
-
-// Hostel Stats
-router.get(
-  "/admin/hostel-stats",
-  authMiddleware,
-  authorizeRole("admin"),
-  complaintController.getHostelStats
-);
-
-
-// Category Stats
-router.get(
-  "/admin/category-stats",
-  authMiddleware,
-  authorizeRole("admin"),
-  complaintController.getCategoryStats
-);
-
-
-
-// =====================================
-// WORKER ROUTES
-// =====================================
-
-// Worker Active Complaints
-router.get(
   "/worker",
+
   authMiddleware,
+
   authorizeRole("worker"),
-  complaintController.getWorkerComplaints
+
+  getWorkerComplaints
+
 );
 
-
-// Worker Accept Complaint
 router.put(
+
   "/accept/:id",
+
   authMiddleware,
+
   authorizeRole("worker"),
-  complaintController.acceptComplaint
+
+  acceptComplaint
+
 );
 
-
-// Worker Update Status
 router.put(
-  "/update-status/:id",
+
+  "/status/:id",
+
   authMiddleware,
+
   authorizeRole("worker"),
-  complaintController.updateComplaintStatus
+
+  updateComplaintStatus
+
 );
 
+// =====================================
+// ADMIN
+// =====================================
 
+router.get(
+
+  "/all",
+
+  authMiddleware,
+
+  authorizeRole("admin"),
+
+  getAllComplaints
+
+);
+
+router.get(
+
+  "/escalated",
+
+  authMiddleware,
+
+  authorizeRole("admin"),
+
+  getEscalatedComplaints
+
+);
+
+// =====================================
+// STATS
+// =====================================
+
+router.get(
+
+  "/stats/admin",
+
+  authMiddleware,
+
+  authorizeRole("admin"),
+
+  getAdminStats
+
+);
+
+router.get(
+
+  "/stats/hostel",
+
+  authMiddleware,
+
+  authorizeRole("admin"),
+
+  getHostelStats
+
+);
+
+router.get(
+
+  "/stats/category",
+
+  authMiddleware,
+
+  authorizeRole("admin"),
+
+  getCategoryStats
+
+);
 
 module.exports = router;

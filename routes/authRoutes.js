@@ -1,40 +1,92 @@
-import express from "express";
+const router =
+  require("express").Router();
 
-import {
+// =====================================
+// CONTROLLERS
+// =====================================
+
+const {
 
   registerUser,
 
   loginUser,
 
-  verifyEmail,
+  updateProfile,
 
-} from "../controllers/authController.js";
+} = require(
 
-const router = express.Router();
+  "../controllers/authController"
 
+);
 
-// ======================
-// AUTH ROUTES
-// ======================
+// =====================================
+// MIDDLEWARE
+// =====================================
+
+const authMiddleware =
+  require(
+
+    "../middleware/authMiddleware"
+
+  );
+
+// =====================================
+// REGISTER
+// =====================================
 
 router.post(
+
   "/register",
+
   registerUser
+
 );
+
+// =====================================
+// LOGIN
+// =====================================
 
 router.post(
+
   "/login",
+
   loginUser
+
 );
 
+// =====================================
+// UPDATE PROFILE
+// =====================================
+
+router.put(
+
+  "/update-profile",
+
+  authMiddleware,
+
+  updateProfile
+
+);
 router.get(
-  "/verify/:token",
-  verifyEmail
+
+  "/me",
+
+  authMiddleware,
+
+  async (req, res) => {
+
+    res.status(200).json({
+
+      user: req.user,
+
+    });
+
+  }
+
 );
 
-
-// ======================
+// =====================================
 // EXPORT
-// ======================
+// =====================================
 
-export default router;
+module.exports = router;

@@ -1,76 +1,106 @@
-import mongoose from "mongoose";
+const mongoose =
+  require("mongoose");
 
-const userSchema = new mongoose.Schema(
+// =====================================
+// USER SCHEMA
+// =====================================
 
-  {
+const userSchema =
+  new mongoose.Schema(
 
-    name: {
+    {
 
-      type: String,
+      name: {
 
-      required: true,
+        type: String,
+
+        required: true,
+
+      },
+
+      email: {
+
+        type: String,
+
+        required: true,
+
+        unique: true,
+
+      },
+
+      password: {
+
+        type: String,
+
+        required: true,
+
+      },
+
+      role: {
+
+        type: String,
+
+        enum: [
+
+          "student",
+
+          "worker",
+
+          "admin",
+
+        ],
+
+        default: "student",
+
+      },
+
+      // =====================================
+      // PROFILE FIELDS
+      // =====================================
+
+      hostel: {
+
+        type: String,
+
+        default: "",
+
+      },
+
+      roomNumber: {
+
+        type: String,
+
+        default: "",
+
+      },
+
+      phoneNumber: {
+
+        type: String,
+
+        default: "",
+
+      },
 
     },
 
-    email: {
+    {
 
-      type: String,
+      timestamps: true,
 
-      required: true,
+    }
 
-      unique: true,
+  );
 
-    },
+// =====================================
+// EXPORT MODEL
+// =====================================
 
-    password: {
+module.exports =
+  mongoose.model(
 
-      type: String,
+    "User",
 
-      required: true,
+    userSchema
 
-    },
-
-    role: {
-
-      type: String,
-
-      enum: [
-        "student",
-        "worker",
-        "admin",
-      ],
-
-      default: "student",
-
-    },
-
-    isVerified: {
-
-      type: Boolean,
-
-      default: false,
-
-    },
-
-    verificationToken: {
-
-      type: String,
-
-    },
-
-  },
-
-  {
-
-    timestamps: true,
-
-  }
-
-);
-
-const User = mongoose.model(
-  "User",
-  userSchema
-);
-
-export default User;
+  );

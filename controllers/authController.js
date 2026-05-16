@@ -4,60 +4,62 @@ import bcrypt from "bcryptjs";
 
 import jwt from "jsonwebtoken";
 
-import sendVerificationEmail from "../utils/sendVerificationEmail.js";
 
+// ======================
+// REGISTER
+// ======================
 
-// =====================================
-// REGISTER USER
-// =====================================
+export const registerUser = async (
 
-export const registerUser = async (req, res) => {
+  req,
+  res
+
+) => {
 
   try {
 
     const {
+
       name,
+      email,
       password,
       role,
-      email: rawEmail,
+
     } = req.body;
 
-    const email = rawEmail
-      ? rawEmail.toLowerCase()
-      : "";
-
-    // REQUIRED FIELDS
-
-    if (!name || !email || !password) {
-
-      return res.status(400).json({
-
-        message:
-          "Name, email and password are required",
-
-      });
-
-    }
-
-    // EMAIL VALIDATION
+    // ======================
+    // AMITY EMAIL CHECK
+    // ======================
 
     if (
-      !email.endsWith("@amity.edu") &&
+
+      !email.endsWith("@amity.edu")
+
+      &&
+
       !email.endsWith("@s.amity.edu")
+
     ) {
 
       return res.status(400).json({
 
         message:
-          "Use Amity email only",
+          "Use Amity Email Only",
 
       });
 
     }
 
-    // CHECK USER
+    // ======================
+    // EXISTING USER
+    // ======================
 
-    const userExists = await User.findOne({ email });
+    const userExists =
+      await User.findOne({
+
+        email,
+
+      });
 
     if (userExists) {
 
@@ -70,144 +72,53 @@ export const registerUser = async (req, res) => {
 
     }
 
+    // ======================
     // HASH PASSWORD
+    // ======================
 
     const hashedPassword =
-      await bcrypt.hash(password, 10);
+      await bcrypt.hash(
 
-    // ROLE
+        password,
+        10
 
-    const allowedRoles = [
-      "student",
-      "worker",
-    ];
+      );
 
-    const userRole =
-      allowedRoles.includes(role)
-        ? role
-        : "student";
-
-    // VERIFY TOKEN
-
-    const verificationToken = jwt.sign(
-
-      { email },
-
-      process.env.JWT_SECRET,
-
-      { expiresIn: "1d" }
-
-    );
-
+    // ======================
     // CREATE USER
+    // ======================
 
-    await User.create({
+    const user =
+      await User.create({
 
-      name,
+        name,
 
-      email,
+        email,
 
-      password: hashedPassword,
+        password:
+          hashedPassword,
 
-      role: userRole,
+        role,
 
-      isVerified: false,
-
-      verificationToken,
-
-    });
-
-    // SEND EMAIL
-await sendVerificationEmail(
-
-  email,
-
-  verificationToken,
-
-  name
-
-);
-
-    // RESPONSE
+      });
 
     res.status(201).json({
 
       message:
-        "Verification email sent",
+        "Registration Successful",
 
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-
-      message: error.message,
+      user,
 
     });
 
   }
 
-};
+  catch (error) {
 
-
-// =====================================
-// VERIFY EMAIL
-// =====================================
-
-export const verifyEmail = async (
-  req,
-  res
-) => {
-
-  try {
-
-    const token = req.params.token;
-
-    const decoded = jwt.verify(
-
-      token,
-
-      process.env.JWT_SECRET
-
-    );
-
-    const user = await User.findOne({
-
-      email: decoded.email,
-
-      verificationToken: token,
-
-    });
-
-    if (!user) {
-
-      return res.status(400).json({
-
-        message:
-          "Invalid or expired token",
-
-      });
-
-    }
-
-    user.isVerified = true;
-
-    user.verificationToken = undefined;
-
-    await user.save();
-
-    res.status(200).json({
+    res.status(500).json({
 
       message:
-        "Email verified successfully",
-
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-
-      message: error.message,
+        error.message,
 
     });
 
@@ -216,41 +127,36 @@ export const verifyEmail = async (
 };
 
 
-// =====================================
-// LOGIN USER
-// =====================================
+// ======================
+// LOGIN
+// ======================
 
 export const loginUser = async (
+
   req,
   res
+
 ) => {
 
   try {
 
-    const password = req.body.password;
+    const {
 
-    const email = req.body.email
-      ? req.body.email.toLowerCase()
-      : "";
+      email,
+      password,
 
-    // REQUIRED
+    } = req.body;
 
-    if (!email || !password) {
+    // ======================
+    // FIND USER
+    // ======================
 
-      return res.status(400).json({
+    const user =
+      await User.findOne({
 
-        message:
-          "Email and password are required",
+        email,
 
       });
-
-    }
-
-    // FIND USER
-
-    const user = await User.findOne({
-      email,
-    });
 
     if (!user) {
 
@@ -263,90 +169,128 @@ export const loginUser = async (
 
     }
 
-    // EMAIL VERIFY CHECK
-
-    if (!user.isVerified) {
-
-      return res.status(400).json({
-
-        message:
-          "Please verify your email first",
-
-      });
-
-    }
-
+    // ======================
     // PASSWORD CHECK
+    // ======================
 
-    const isMatch = await bcrypt.compare(
+    const isMatch =
+      await bcrypt.compare(
 
-      password,
+        password,
+        user.password
 
-      user.password
-
-    );
+      );
 
     if (!isMatch) {
 
       return res.status(400).json({
 
         message:
-          "Invalid password",
+          "Invalid Password",
 
       });
 
     }
 
+    // ======================
     // JWT TOKEN
+    // ======================
 
     const token = jwt.sign(
 
-      {
+  {
 
-        id: user._id,
+    _id: user._id,
 
-        role: user.role,
+    role: user.role,
 
-      },
+  },
 
-      process.env.JWT_SECRET,
+  process.env.JWT_SECRET,
 
-      {
+  {
 
-        expiresIn: "7d",
+    expiresIn: "7d",
 
-      }
+  }
 
-    );
-
-    // RESPONSE
+);
 
     res.status(200).json({
 
       message:
-        "Login successful",
+        "Login Successful",
 
       token,
 
-      user: {
+      user,
 
-        id: user._id,
+    });
 
-        name: user.name,
+  }
 
-        email: user.email,
+  catch (error) {
 
-        role: user.role,
+    res.status(500).json({
 
-      },
+      message:
+        error.message,
+
+    });
+
+  }
+
+};
+
+export const updateProfile =
+async (req, res) => {
+
+  try {
+
+    const updatedUser =
+      await User.findByIdAndUpdate(
+
+        req.user._id,
+
+        {
+
+          hostel:
+            req.body.hostel,
+
+          roomNumber:
+            req.body.roomNumber,
+
+          phoneNumber:
+            req.body.phoneNumber,
+
+        },
+
+        {
+
+          new: true,
+
+        }
+
+      ).select("-password");
+
+    res.status(200).json({
+
+      success: true,
+
+      user: updatedUser,
 
     });
 
   } catch (error) {
 
+    console.log(error);
+
     res.status(500).json({
 
-      message: error.message,
+      success: false,
+
+      message:
+        error.message,
 
     });
 
