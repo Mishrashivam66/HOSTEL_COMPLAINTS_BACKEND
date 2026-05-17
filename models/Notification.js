@@ -1,58 +1,86 @@
-const mongoose =
-require("mongoose");
+const mongoose = require("mongoose");
 
 const notificationSchema =
-new mongoose.Schema(
+  new mongoose.Schema(
 
-  {
+    {
 
-    title: {
+      userId: {
 
-      type: String,
+        type:
+          mongoose.Schema.Types.ObjectId,
 
-      required: true,
+        ref: "User",
+
+        required: true,
+
+      },
+
+      title: {
+
+        type: String,
+
+        required: true,
+
+      },
+
+      message: {
+
+        type: String,
+
+        required: true,
+
+      },
+
+      type: {
+
+        type: String,
+
+        enum: [
+
+          "submitted",
+
+          "accepted",
+
+          "progress",
+
+          "completed",
+
+          "escalated",
+
+          "admin",
+
+          "reopened",
+
+        ],
+
+        default: "submitted",
+
+      },
+
+      isRead: {
+
+        type: Boolean,
+
+        default: false,
+
+      },
 
     },
 
-    message: {
+    {
 
-      type: String,
+      timestamps: true,
 
-      required: true,
+    }
 
-    },
-
-    complaintId: {
-
-      type: String,
-
-      default: "",
-
-    },
-
-    isRead: {
-
-      type: Boolean,
-
-      default: false,
-
-    },
-
-  },
-
-  {
-
-    timestamps: true,
-
-  }
-
-);
+  );
 
 module.exports =
-mongoose.model(
+  mongoose.model(
 
-  "Notification",
+    "Notification",
 
-  notificationSchema
+    notificationSchema
 
-);
+  );

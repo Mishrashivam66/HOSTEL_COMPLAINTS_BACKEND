@@ -13,6 +13,8 @@ const {
 
   updateProfile,
 
+  getMyProfile
+
 } = require(
 
   "../controllers/authController"
@@ -29,6 +31,7 @@ const authMiddleware =
     "../middleware/authMiddleware"
 
   );
+
 
 // =====================================
 // REGISTER
@@ -82,6 +85,16 @@ router.get(
     });
 
   }
+
+);
+
+router.get(
+
+  "/me",
+
+  authMiddleware,
+
+  getMyProfile
 
 );
 

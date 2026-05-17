@@ -1,5 +1,7 @@
 const Complaint = require("../models/Complaint");
 
+const Notification = require("../models/Notification");
+
 const {
   sendStudentNotification,
   sendWorkerNotification,
@@ -12,8 +14,20 @@ const {
 
 exports.createComplaint = async (req, res) => {
   try {
-    const { hostel, floor, room, phoneNumber, category, description } =
-      req.body;
+    const {
+      hostel,
+      floor,
+      room,
+
+      phoneNumber,
+
+      category,
+      description,
+    } = req.body;
+
+    // =====================================
+    // VALIDATION
+    // =====================================
 
     if (!hostel || !floor || !room || !phoneNumber || !category) {
       return res.status(400).json({
@@ -21,22 +35,32 @@ exports.createComplaint = async (req, res) => {
       });
     }
 
-    // Auto 24h deadline
+    // =====================================
+    // AUTO 24H DEADLINE
+    // =====================================
+
     const deadline = new Date();
 
     deadline.setHours(deadline.getHours() + 24);
 
+    // =====================================
+    // CREATE COMPLAINT
+    // =====================================
+
     const complaint = await Complaint.create({
-      studentId: req.user.id,
+      studentId: req.user._id,
 
       hostel,
       floor,
       room,
+
       phoneNumber,
+
       category,
       description,
 
       status: "Pending",
+
       priority: "Medium",
 
       assignedWorker: "",
@@ -48,9 +72,9 @@ exports.createComplaint = async (req, res) => {
       completionDeadline: deadline,
     });
 
-    // ============================
-    // STUDENT NOTIFICATION
-    // ============================
+    // =====================================
+    // TELEGRAM STUDENT NOTIFICATION
+    // =====================================
 
     await sendStudentNotification(
       `✅ Complaint Registered
@@ -65,9 +89,23 @@ Status:
 Pending`,
     );
 
-    // ============================
-    // WORKER NOTIFICATION
-    // ============================
+    // =====================================
+    // DATABASE NOTIFICATION
+    // =====================================
+
+    await Notification.create({
+      userId: req.user._id,
+
+      title: "Complaint Submitted",
+
+      message: "Your complaint has been submitted successfully",
+
+      type: "submitted",
+    });
+
+    // =====================================
+    // WORKER TELEGRAM NOTIFICATION
+    // =====================================
 
     await sendWorkerNotification(
       `🚨 NEW COMPLAINT
@@ -82,13 +120,23 @@ Description:
 ${description}`,
     );
 
+    // =====================================
+    // RESPONSE
+    // =====================================
+
     res.status(201).json({
+      success: true,
+
       message: "Complaint submitted successfully",
 
       complaint,
     });
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
+      success: false,
+
       message: error.message,
     });
   }
@@ -101,12 +149,22 @@ ${description}`,
 exports.getMyComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.find({
-      studentId: req.user.id,
-    }).sort({ createdAt: -1 });
+      studentId: req.user._id,
+    })
 
-    res.status(200).json(complaints);
+      .sort({
+        createdAt: -1,
+      });
+
+    res.status(200).json({
+      success: true,
+
+      complaints,
+    });
   } catch (error) {
     res.status(500).json({
+      success: false,
+
       message: error.message,
     });
   }
@@ -119,16 +177,30 @@ exports.getMyComplaints = async (req, res) => {
 exports.getWorkerComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.find({
-      status: { $ne: "Completed" },
+      status: {
+        $ne: "Completed",
+      },
     })
 
-      .populate("studentId", "name email")
+      .populate(
+        "studentId",
 
-      .sort({ createdAt: -1 });
+        "name email",
+      )
 
-    res.status(200).json(complaints);
+      .sort({
+        createdAt: -1,
+      });
+
+    res.status(200).json({
+      success: true,
+
+      complaints,
+    });
   } catch (error) {
     res.status(500).json({
+      success: false,
+
       message: error.message,
     });
   }
@@ -140,20 +212,12 @@ exports.getWorkerComplaints = async (req, res) => {
 
 exports.acceptComplaint = async (req, res) => {
   try {
-    // const currentHour = new Date().getHours();
-
-    // if (currentHour < 9 || currentHour >= 17) {
-
-    //   return res.status(403).json({
-    //     message: "Worker service available only between 9 AM and 5 PM"
-    //   });
-
-    // }
-
     const { visitTime } = req.body;
 
     if (!visitTime) {
       return res.status(400).json({
+        success: false,
+
         message: "Visit time is required",
       });
     }
@@ -162,11 +226,14 @@ exports.acceptComplaint = async (req, res) => {
 
     if (!complaint) {
       return res.status(404).json({
+        success: false,
+
         message: "Complaint not found",
       });
     }
 
     complaint.workerAccepted = true;
+
     complaint.assignedWorker = req.user.name || req.user.firstName;
 
     complaint.workerPhone = req.user.phoneNumber || "";
@@ -176,11 +243,12 @@ exports.acceptComplaint = async (req, res) => {
     complaint.acceptedAt = new Date();
 
     complaint.status = "Assigned";
+
     await complaint.save();
 
-    // ============================
-    // STUDENT NOTIFICATION
-    // ============================
+    // =====================================
+    // TELEGRAM STUDENT NOTIFICATION
+    // =====================================
 
     await sendStudentNotification(
       `👨‍🔧 Worker Assigned
@@ -194,13 +262,31 @@ In Progress
 Please remain available in your room.`,
     );
 
+    // =====================================
+    // DATABASE NOTIFICATION
+    // =====================================
+
+    await Notification.create({
+      userId: complaint.studentId,
+
+      title: "Worker Accepted Complaint",
+
+      message: `${complaint.assignedWorker} accepted your complaint`,
+
+      type: "accepted",
+    });
+
     res.status(200).json({
+      success: true,
+
       message: "Complaint accepted successfully",
 
       complaint,
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
+
       message: error.message,
     });
   }
@@ -216,21 +302,32 @@ exports.updateComplaintStatus = async (req, res) => {
 
     if (!complaint) {
       return res.status(404).json({
+        success: false,
+
         message: "Complaint not found",
       });
     }
 
     const allowedStatus = ["Pending", "Assigned", "In Progress", "Completed"];
+
     if (!allowedStatus.includes(req.body.status)) {
       return res.status(400).json({
+        success: false,
+
         message: "Invalid status value",
       });
     }
 
     complaint.status = req.body.status;
 
+    // =====================================
+    // COMPLETED
+    // =====================================
+
     if (req.body.status === "Completed") {
       complaint.completedAt = new Date();
+
+      // TELEGRAM
 
       await sendStudentNotification(
         `✅ Complaint Resolved
@@ -239,138 +336,33 @@ Your complaint has been marked completed.
 
 Thank you for using Hostel Complaint System.`,
       );
+
+      // DATABASE
+
+      await Notification.create({
+        userId: complaint.studentId,
+
+        title: "Complaint Completed",
+
+        message: "Your complaint has been resolved successfully",
+
+        type: "completed",
+      });
     }
 
     await complaint.save();
 
     res.status(200).json({
+      success: true,
+
       message: "Complaint status updated successfully",
 
       complaint,
     });
   } catch (error) {
     res.status(500).json({
-      message: error.message,
-    });
-  }
-};
+      success: false,
 
-// =====================================
-// ADMIN → ALL COMPLAINTS
-// =====================================
-
-exports.getAllComplaints = async (req, res) => {
-  try {
-    const complaints = await Complaint.find()
-
-      .populate("studentId", "name email")
-
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(complaints);
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-// =====================================
-// ADMIN → ESCALATED COMPLAINTS
-// =====================================
-
-exports.getEscalatedComplaints = async (req, res) => {
-  try {
-    const complaints = await Complaint.find({
-      isEscalated: true,
-    })
-
-      .populate("studentId", "name email")
-
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(complaints);
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-// =====================================
-// ADMIN → STATS
-// =====================================
-
-exports.getAdminStats = async (req, res) => {
-  try {
-    const totalComplaints = await Complaint.countDocuments();
-
-    const pending = await Complaint.countDocuments({
-      status: "Pending",
-    });
-
-    const inProgress = await Complaint.countDocuments({
-      status: "In Progress",
-    });
-
-    const completed = await Complaint.countDocuments({
-      status: "Completed",
-    });
-
-    res.status(200).json({
-      totalComplaints,
-      pending,
-      inProgress,
-      completed,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-// =====================================
-// HOSTEL STATS
-// =====================================
-
-exports.getHostelStats = async (req, res) => {
-  try {
-    const stats = await Complaint.aggregate([
-      {
-        $group: {
-          _id: "$hostel",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
-    res.status(200).json(stats);
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-
-// =====================================
-// CATEGORY STATS
-// =====================================
-
-exports.getCategoryStats = async (req, res) => {
-  try {
-    const stats = await Complaint.aggregate([
-      {
-        $group: {
-          _id: "$category",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
-    res.status(200).json(stats);
-  } catch (error) {
-    res.status(500).json({
       message: error.message,
     });
   }
@@ -383,7 +375,9 @@ exports.getCategoryStats = async (req, res) => {
 exports.checkEscalatedComplaints = async () => {
   try {
     const overdueComplaints = await Complaint.find({
-      status: { $ne: "Completed" },
+      status: {
+        $ne: "Completed",
+      },
 
       completionDeadline: {
         $lt: new Date(),
@@ -396,6 +390,8 @@ exports.checkEscalatedComplaints = async () => {
       complaint.isEscalated = true;
 
       await complaint.save();
+
+      // TELEGRAM
 
       await sendAdminNotification(
         `⚠️ Complaint Escalated
@@ -411,6 +407,18 @@ ${complaint.category}
 
 Complaint pending more than 24 hours.`,
       );
+
+      // DATABASE
+
+      await Notification.create({
+        userId: complaint.studentId,
+
+        title: "Complaint Escalated",
+
+        message: "Your complaint has been escalated to admin",
+
+        type: "escalated",
+      });
 
       console.log(`Complaint Escalated: ${complaint._id}`);
     }

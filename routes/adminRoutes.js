@@ -9,6 +9,17 @@ require("../middleware/authMiddleware");
 
 const adminController =
 require("../controllers/admin/adminController");
+const {
+
+  getNotifications,
+
+  markAsRead,
+
+} = require(
+
+  "../controllers/admin/notificationController"
+
+);
 
 // ======================
 // ALL COMPLAINTS
@@ -112,19 +123,19 @@ router.get(
 // GET NOTIFICATIONS
 // ======================
 
+// ======================
+// NOTIFICATIONS
+// ======================
+
 router.get(
 
   "/notifications",
 
   authMiddleware,
 
-  adminController.getNotifications
+  getNotifications
 
 );
-
-// ======================
-// MARK NOTIFICATION READ
-// ======================
 
 router.put(
 
@@ -132,7 +143,7 @@ router.put(
 
   authMiddleware,
 
-  adminController.markNotificationRead
+  markAsRead
 
 );
 

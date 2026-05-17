@@ -48,6 +48,7 @@ const userSchema = new mongoose.Schema(
     // PROFILE FIELDS
     // =====================================
 
+
     hostel: {
       type: String,
 

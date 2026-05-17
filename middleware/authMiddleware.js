@@ -4,21 +4,20 @@ require("jsonwebtoken");
 const User =
 require("../models/User");
 
-// ======================
+// =====================================
 // AUTH MIDDLEWARE
-// ======================
+// =====================================
 
 const authMiddleware =
 async (req, res, next) => {
 
   try {
 
-    // ======================
+    // =====================================
     // AUTH HEADER
-    // ======================
+    // =====================================
 
     const authHeader =
-
       req.header(
         "Authorization"
       );
@@ -27,6 +26,8 @@ async (req, res, next) => {
 
       return res.status(401).json({
 
+        success: false,
+
         message:
           "Access denied. No token provided.",
 
@@ -34,9 +35,9 @@ async (req, res, next) => {
 
     }
 
-    // ======================
+    // =====================================
     // TOKEN
-    // ======================
+    // =====================================
 
     const token =
 
@@ -52,9 +53,9 @@ async (req, res, next) => {
 
       authHeader;
 
-    // ======================
-    // VERIFY
-    // ======================
+    // =====================================
+    // VERIFY TOKEN
+    // =====================================
 
     const decoded =
       jwt.verify(
@@ -65,9 +66,9 @@ async (req, res, next) => {
 
       );
 
-    // ======================
+    // =====================================
     // FIND USER
-    // ======================
+    // =====================================
 
     const user =
       await User.findById(
@@ -80,6 +81,8 @@ async (req, res, next) => {
 
       return res.status(404).json({
 
+        success: false,
+
         message:
           "User not found",
 
@@ -87,9 +90,9 @@ async (req, res, next) => {
 
     }
 
-    // ======================
+    // =====================================
     // SAVE USER
-    // ======================
+    // =====================================
 
     req.user = {
 
@@ -105,7 +108,20 @@ async (req, res, next) => {
       role:
         user.role,
 
+      phoneNumber:
+        user.phoneNumber,
+
+      hostel:
+        user.hostel,
+
+      roomNumber:
+        user.roomNumber,
+
     };
+
+    // =====================================
+    // NEXT
+    // =====================================
 
     next();
 
@@ -115,7 +131,9 @@ async (req, res, next) => {
 
     console.log(error);
 
-    res.status(400).json({
+    res.status(401).json({
+
+      success: false,
 
       message:
         "Invalid token",

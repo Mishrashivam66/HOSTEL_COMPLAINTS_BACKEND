@@ -2,6 +2,10 @@ const Complaint = require(
   "../../models/Complaint"
 );
 
+const Notification = require(
+  "../../models/Notification"
+);
+
 const {
   sendStudentNotification
 } = require(
@@ -41,11 +45,14 @@ exports.getWorkerComplaints =
         complaints
       );
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
       res.status(500).json({
 
-        message: error.message
+        message:
+          error.message
 
       });
 
@@ -62,8 +69,9 @@ exports.acceptComplaint =
 
     try {
 
-      const { visitTime } =
-        req.body;
+      const {
+        visitTime
+      } = req.body;
 
       if (!visitTime) {
 
@@ -108,7 +116,9 @@ exports.acceptComplaint =
 
       await complaint.save();
 
-      // STUDENT NOTIFICATION
+      // =====================================
+      // TELEGRAM NOTIFICATION
+      // =====================================
 
       await sendStudentNotification(
 
@@ -122,6 +132,29 @@ In Progress`
 
       );
 
+      // =====================================
+      // DATABASE NOTIFICATION
+      // =====================================
+
+      await Notification.create({
+
+        userId:
+          complaint.studentId,
+
+        title:
+          "Worker Accepted Complaint",
+
+        message:
+          "Worker accepted your complaint and started work",
+
+        type:
+          "accepted",
+
+        isRead:
+          false,
+
+      });
+
       res.status(200).json({
 
         message:
@@ -131,11 +164,16 @@ In Progress`
 
       });
 
-    } catch (error) {
+    }
+
+    catch (error) {
+
+      console.log(error);
 
       res.status(500).json({
 
-        message: error.message
+        message:
+          error.message
 
       });
 
@@ -202,6 +240,10 @@ exports.updateComplaintStatus =
       complaint.status =
         req.body.status;
 
+      // =====================================
+      // COMPLETED
+      // =====================================
+
       if (
 
         req.body.status ===
@@ -212,6 +254,8 @@ exports.updateComplaintStatus =
         complaint.completedAt =
           new Date();
 
+        // TELEGRAM
+
         await sendStudentNotification(
 
 `✅ Complaint Resolved
@@ -219,6 +263,27 @@ exports.updateComplaintStatus =
 Your complaint has been completed.`
 
         );
+
+        // DATABASE NOTIFICATION
+
+        await Notification.create({
+
+          userId:
+            complaint.studentId,
+
+          title:
+            "Complaint Completed",
+
+          message:
+            "Your complaint has been resolved successfully",
+
+          type:
+            "completed",
+
+          isRead:
+            false,
+
+        });
 
       }
 
@@ -233,11 +298,16 @@ Your complaint has been completed.`
 
       });
 
-    } catch (error) {
+    }
+
+    catch (error) {
+
+      console.log(error);
 
       res.status(500).json({
 
-        message: error.message
+        message:
+          error.message
 
       });
 
