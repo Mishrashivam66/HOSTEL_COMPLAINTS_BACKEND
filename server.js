@@ -114,18 +114,18 @@ app.use(
 // AUTO OVERDUE CHECK
 // ======================
 
-setInterval(
+// setInterval(
 
-  async () => {
+//   async () => {
 
-    await adminController
-      .checkOverdueComplaints();
+//     await adminController
+//       .checkOverdueComplaints();
 
-  },
+//   },
 
-  60 * 1000
+//   60 * 1000
 
-);
+// );
 
 
 
