@@ -45,12 +45,10 @@ connectDB();
 
 app.use(
   cors({
-    origin: "*",
-
+    origin: "https://hostel-complain-frontend-three.vercel.app",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-
     credentials: true,
-  }),
+  })
 );
 
 // =====================================
