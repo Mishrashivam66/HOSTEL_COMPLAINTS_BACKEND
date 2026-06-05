@@ -1,6 +1,4 @@
-const express = require("express");
 
-const cors = require("cors");
 
 const dotenv = require("dotenv");
 
@@ -31,7 +29,6 @@ const workerRoutes = require("./routes/workerRoutes");
 
 dotenv.config();
 
-const app = express();
 
 // =====================================
 // DATABASE
@@ -43,20 +40,27 @@ connectDB();
 // CORS
 // =====================================
 
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+
 app.use(
   cors({
-    origin: "https://hostel-complain-frontend-three.vercel.app",
+    origin: [
+      "https://hostel-complain-frontend-three.vercel.app",
+      "http://localhost:3000",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
 );
+
 app.options("*", cors());
 
-// =====================================
-// MIDDLEWARE
-// =====================================
-
 app.use(express.json());
+
+
 
 app.use(
   express.urlencoded({
