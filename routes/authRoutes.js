@@ -6,19 +6,12 @@ const router =
 // =====================================
 
 const {
-
   registerUser,
-
   loginUser,
-
   updateProfile,
-
   getMyProfile
-
 } = require(
-
   "../controllers/authController"
-
 );
 
 // =====================================
@@ -27,22 +20,16 @@ const {
 
 const authMiddleware =
   require(
-
     "../middleware/authMiddleware"
-
   );
-
 
 // =====================================
 // REGISTER
 // =====================================
 
 router.post(
-
   "/register",
-
   registerUser
-
 );
 
 // =====================================
@@ -50,11 +37,8 @@ router.post(
 // =====================================
 
 router.post(
-
   "/login",
-
   loginUser
-
 );
 
 // =====================================
@@ -62,40 +46,19 @@ router.post(
 // =====================================
 
 router.put(
-
   "/update-profile",
-
   authMiddleware,
-
   updateProfile
-
-);
-router.get(
-
-  "/me",
-
-  authMiddleware,
-
-  async (req, res) => {
-
-    res.status(200).json({
-
-      user: req.user,
-
-    });
-
-  }
-
 );
 
+// =====================================
+// GET PROFILE
+// =====================================
+
 router.get(
-
   "/me",
-
   authMiddleware,
-
   getMyProfile
-
 );
 
 // =====================================
